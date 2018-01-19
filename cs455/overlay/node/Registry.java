@@ -1,4 +1,6 @@
-public class Messenger {
+package cs455.overlay.node;
+
+public class Registry {
   public static void main(String[] args){
     if (args[0].equals("server"))
       System.out.println("SERVER");
