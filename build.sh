@@ -1,1 +1,1 @@
-javac ./cs455/overlay/node/*.java
+javac ./cs455/overlay/*/*.java

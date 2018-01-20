@@ -4,6 +4,7 @@ import cs455.overlay.transport.TCPSenderThread;
 import cs455.overlay.transport.TCPServerThread;
 
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.Vector;
 
 public class Registry extends Node {
@@ -17,28 +18,34 @@ public class Registry extends Node {
     new Registry(port);
   }
 
+
   Registry (int port) {
     System.out.println("STARTING REGISTRY...");
-    Vector<Thread> threads = new Vector<>();
+
     try {
-      threads.add(new Thread(new TCPServerThread(port)));
+      sock = new ServerSocket(port);
+      thread_server = new Thread(new TCPServerThread(port, sock));
     }
     catch (IOException e){
       System.err.println(e);
     }
 
-    for (Thread thread : threads) {
-      thread.start();
+    startThreads();
+
+    while ()
+
+      try {
+        queue_command.take();
+      } catch (InterruptedException e) {
+        System.err.println("Interrupt Caught");
+        break;
+      }
     }
 
     try {
-      while (threads.size() != 0) {
-        for (Thread thread : threads) {
-          thread.join();
-        }
-      }
-    }
-    catch (InterruptedException e) {
+      sock.close();
+      joinAllThreads();
+    } catch (IOException e){
       System.err.println(e);
     }
   }
