@@ -13,12 +13,17 @@ public class InteractiveCommandParser implements Runnable {
   public void run() {
     boolean exit = false;
     try (Scanner reader = new Scanner(System.in)) {
-      while(!exit) {
+      while (true) {
         String input = reader.nextLine();
         try {
           queue.put(input);
         } catch (InterruptedException e){
           System.err.println(e);
+        }
+
+        if(input.equals("TERMINATE")) {
+          System.out.println("SENDING TERMINATE");
+          break;
         }
       }
     }

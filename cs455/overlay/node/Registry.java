@@ -32,10 +32,14 @@ public class Registry extends Node {
 
     startThreads();
 
-    while ()
-
+    String command;
+    while (true) {
       try {
-        queue_command.take();
+        command = queue_command.take();
+        if (command.equals("TERMINATE")) {
+          System.out.println("TERMINATE RECEIVED");
+          break;
+        }
       } catch (InterruptedException e) {
         System.err.println("Interrupt Caught");
         break;
