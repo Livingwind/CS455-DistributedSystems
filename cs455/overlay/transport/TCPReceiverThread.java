@@ -4,13 +4,14 @@ import cs455.overlay.wireformats.Event;
 
 import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 // Receives messages sent to the socket
 public class TCPReceiverThread implements Runnable {
-  private ArrayBlockingQueue<Event> queue;
+  private LinkedBlockingQueue<Event> queue;
   private Socket sock;
 
-  public TCPReceiverThread (ArrayBlockingQueue<Event> queue, Socket sock) {
+  public TCPReceiverThread (LinkedBlockingQueue<Event> queue, Socket sock) {
     this.queue = queue;
     this.sock = sock;
   }

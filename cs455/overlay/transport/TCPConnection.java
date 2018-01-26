@@ -4,20 +4,20 @@ package cs455.overlay.transport;
 import cs455.overlay.wireformats.Event;
 
 import java.net.Socket;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class TCPConnection implements Runnable {
   private Thread threadRecv;
   private Thread threadSend;
   private Socket sock;
 
-  ArrayBlockingQueue<Event> queueRecv;
-  ArrayBlockingQueue<Event> queueSend;
+  private LinkedBlockingQueue<Event> queueRecv;
+  private LinkedBlockingQueue<Event> queueSend;
 
   public TCPConnection(Socket sock) {
     this.sock = sock;
-    queueRecv = new ArrayBlockingQueue<Event>(8);
-    queueSend = new ArrayBlockingQueue<Event>(8);
+    queueRecv = new LinkedBlockingQueue<Event>();
+    queueSend = new LinkedBlockingQueue<Event>();
 
     threadRecv = new Thread(new TCPReceiverThread(queueRecv, sock));
     threadSend = new Thread(new TCPSenderThread(queueSend, sock));
@@ -43,6 +43,23 @@ public class TCPConnection implements Runnable {
     }
 
     System.out.println("ENDING TCPCONNECTION");
+  }
+
+  public String getHost () {
+    return sock.getInetAddress().getCanonicalHostName();
+  }
+
+  @Override
+  public boolean equals (Object obj) {
+    if (obj instanceof String) {
+      String other = (String) obj;
+      return getHost().equals(other);
+    }
+    return false;
+  }
+  @Override
+  public int hashCode() {
+    return getHost().hashCode();
   }
 
   public synchronized void sendMessage (Event e) {

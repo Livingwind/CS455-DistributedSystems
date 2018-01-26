@@ -18,12 +18,11 @@ public class InteractiveCommandParser implements Runnable {
   public void run() {
     System.out.println("STARTING COMMAND PARSER");
 
-    String input;
-    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-
-    try {
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){
       do {
-        while (!br.ready()) { Thread.sleep(200); };
+        while (!br.ready()) {
+          Thread.sleep(10);
+        };
         queue.put(br.readLine());
       } while (true);
     } catch (InterruptedException e) {
