@@ -38,7 +38,6 @@ public class Node {
   protected void stopAllThreads() {
     System.out.println("SENDING INTERRUPTS");
 
-    command.killMe();
     server.killMe();
 
     int num_threads = threads.size();

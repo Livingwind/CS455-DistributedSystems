@@ -1,15 +1,17 @@
 package cs455.overlay.util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Scanner;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class InteractiveCommandParser implements Runnable {
-  private ArrayBlockingQueue<String> queue;
-  private Scanner reader;
-
+  private LinkedBlockingQueue<String> queue;
   public InteractiveCommandParser () {
-    queue = new ArrayBlockingQueue<String>(8);
+    queue = new LinkedBlockingQueue<>();
   }
 
   @Override
@@ -17,27 +19,21 @@ public class InteractiveCommandParser implements Runnable {
     System.out.println("STARTING COMMAND PARSER");
 
     String input;
-    reader = new Scanner(System.in);
+    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
     try {
       do {
-        if (reader.hasNext()) {
-          input = reader.nextLine();
-          queue.put(input);
-        }
+        while (!br.ready()) { Thread.sleep(200); };
+        queue.put(br.readLine());
       } while (true);
-    } catch (IllegalStateException e) {
+    } catch (InterruptedException e) {
       System.out.println("STOPPPING PARSER");
     } catch (Exception e) {
-      System.out.println("STOPPING COMMAND PARSER");
+      System.err.println(e);
     }
   }
 
   public synchronized String getMessage () {
     return queue.poll();
-  }
-
-  public synchronized void killMe () {
-    reader.close();
   }
 }

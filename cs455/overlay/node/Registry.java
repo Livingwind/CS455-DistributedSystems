@@ -21,7 +21,6 @@ public class Registry extends Node {
     String msg;
     do {
         msg = command.getMessage();
-
         if (msg != null && msg.equals("exit")) {
           System.out.println("RECEIVED EXIT");
           break;
