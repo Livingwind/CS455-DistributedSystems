@@ -2,8 +2,10 @@ package cs455.overlay.node;
 
 
 import cs455.overlay.transport.TCPConnection;
+import cs455.overlay.transport.TCPServerThread;
 import cs455.overlay.util.InteractiveCommandParser;
 
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -11,39 +13,39 @@ import java.util.concurrent.ArrayBlockingQueue;
 public class Node {
 
   protected Vector<Thread> threads;
-  protected ArrayBlockingQueue<String> queue_command;
-  protected Thread thread_command;
-  protected ArrayBlockingQueue<String> queue_conn;
-  protected Thread thread_conn;
-  protected Thread thread_server;
+  protected InteractiveCommandParser command;
+  protected TCPConnection conn;
+  protected TCPServerThread server;
 
   protected ServerSocket sock;
 
-  public Node () {
-    threads = new Vector<Thread>();
-    queue_command = new ArrayBlockingQueue<String>(8);
-    thread_command = new Thread(new InteractiveCommandParser(queue_command));
-    thread_conn = new Thread(new TCPConnection());
-  }
+  public Node (int port) {
+    command = new InteractiveCommandParser();
+    server = new TCPServerThread(port);
 
-  private void addThreadsToPool() {
-    threads.add(thread_command);
-    threads.add(thread_conn);
-    threads.add(thread_server);
+    threads = new Vector<>();
+    threads.add(new Thread(command));
+    threads.add(new Thread(conn));
+    threads.add(new Thread(server));
   }
 
   protected void startThreads() {
-    addThreadsToPool();
     for (Thread thread : threads) {
-      System.out.println("STARTING " + thread);
       thread.start();
     }
   }
-  protected void joinAllThreads() {
+
+  protected void stopAllThreads() {
+    System.out.println("SENDING INTERRUPTS");
+
+    command.killMe();
+    server.killMe();
+
     int num_threads = threads.size();
     while (num_threads != 0) {
       for (Thread thread : threads) {
         try {
+          thread.interrupt();
           thread.join();
         } catch (InterruptedException e) {
           System.err.println(e);
