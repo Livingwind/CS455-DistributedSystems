@@ -1,41 +1,47 @@
 package cs455.overlay.node;
 
 
-import cs455.overlay.transport.TCPConnection;
+import cs455.overlay.transport.TCPConnectionsCache;
 import cs455.overlay.transport.TCPServerThread;
+import cs455.overlay.util.EventWithConn;
 import cs455.overlay.util.InteractiveCommandParser;
 
-import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Vector;
-import java.util.concurrent.ArrayBlockingQueue;
 
-public class Node {
+public abstract class Node {
 
-  protected Vector<Thread> threads;
-  protected InteractiveCommandParser command;
-  protected TCPConnection conn;
+  protected boolean exit = false;
+  protected Vector<Thread> threads = new Vector<>();
+  protected InteractiveCommandParser command = new InteractiveCommandParser();
+  protected TCPConnectionsCache cache;
   protected TCPServerThread server;
 
-  protected ServerSocket sock;
+  public Node () {
+    server = new TCPServerThread();
+    cache = new TCPConnectionsCache(server);
+    addThreads();
+  }
 
   public Node (int port) {
-    command = new InteractiveCommandParser();
     server = new TCPServerThread(port);
+    cache = new TCPConnectionsCache(server);
+    addThreads();
+  }
 
-    threads = new Vector<>();
+  private void addThreads () {
     threads.add(new Thread(command));
-    threads.add(new Thread(conn));
+    threads.add(new Thread(cache));
     threads.add(new Thread(server));
   }
 
-  protected void startThreads() {
+  protected void startThreads () {
     for (Thread thread : threads) {
       thread.start();
     }
   }
 
-  protected void stopAllThreads() {
+  protected void stopAllThreads () {
     System.out.println("SENDING INTERRUPTS");
 
     server.killMe();
@@ -53,4 +59,6 @@ public class Node {
       }
     }
   }
+
+  protected abstract void onEvent (EventWithConn event);
 }

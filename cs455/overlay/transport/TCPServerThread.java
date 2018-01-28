@@ -4,16 +4,23 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 // Starts the server to establish connections (ServerSocket)
 public class TCPServerThread implements Runnable {
-  private ConcurrentHashMap<String, Socket> pooledConnections;
+  private LinkedBlockingQueue<Socket> incomingSockets =
+      new LinkedBlockingQueue<>();
   private ServerSocket sock;
 
-  public TCPServerThread (int port) {
-    pooledConnections = new ConcurrentHashMap<>();
+  public TCPServerThread () {
+    try {
+      sock = new ServerSocket(0);
+    } catch (IOException e) {
+      System.err.println(e);
+    }
+  }
 
+  public TCPServerThread (int port) {
     try {
       sock = new ServerSocket(port);
     } catch (IOException e) {
@@ -27,8 +34,7 @@ public class TCPServerThread implements Runnable {
     try {
       do {
         Socket incoming = sock.accept();
-        String hostName = incoming.getInetAddress().getCanonicalHostName();
-        pooledConnections.put(hostName, incoming);
+        incomingSockets.add(incoming);
       } while (true);
     }
     catch (SocketException e) {
@@ -39,8 +45,8 @@ public class TCPServerThread implements Runnable {
     }
   }
 
-  public synchronized Socket getSocketByHostname (String host) {
-    return pooledConnections.get(host);
+  public synchronized Socket getSocket () {
+    return incomingSockets.poll();
   }
 
   public synchronized void killMe () {

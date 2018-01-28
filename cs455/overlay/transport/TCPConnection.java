@@ -3,6 +3,7 @@ package cs455.overlay.transport;
 
 import cs455.overlay.wireformats.Event;
 
+import java.io.IOException;
 import java.net.Socket;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -11,14 +12,22 @@ public class TCPConnection implements Runnable {
   private Thread threadSend;
   private Socket sock;
 
-  private LinkedBlockingQueue<Event> queueRecv;
-  private LinkedBlockingQueue<Event> queueSend;
+  private LinkedBlockingQueue<Event> queueRecv = new LinkedBlockingQueue<>();
+  private LinkedBlockingQueue<Event> queueSend = new LinkedBlockingQueue<>();
+
+  public TCPConnection(String host, int port) {
+    try {
+      this.sock = new Socket(host, port);
+    } catch (IOException e) {
+      System.err.println(e);
+    }
+
+    threadRecv = new Thread(new TCPReceiverThread(queueRecv, sock));
+    threadSend = new Thread(new TCPSenderThread(queueSend, sock));
+  }
 
   public TCPConnection(Socket sock) {
     this.sock = sock;
-    queueRecv = new LinkedBlockingQueue<Event>();
-    queueSend = new LinkedBlockingQueue<Event>();
-
     threadRecv = new Thread(new TCPReceiverThread(queueRecv, sock));
     threadSend = new Thread(new TCPSenderThread(queueSend, sock));
   }
@@ -57,6 +66,11 @@ public class TCPConnection implements Runnable {
     }
     return false;
   }
+
+  public Socket getSock () {
+    return sock;
+  }
+
   @Override
   public int hashCode() {
     return getHost().hashCode();
