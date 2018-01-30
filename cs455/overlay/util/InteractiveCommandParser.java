@@ -21,7 +21,7 @@ public class InteractiveCommandParser implements Runnable {
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){
       do {
         while (!br.ready()) {
-          Thread.sleep(10);
+          Thread.sleep(1);
         };
         queue.put(br.readLine());
       } while (true);
