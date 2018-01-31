@@ -7,42 +7,46 @@ import java.net.SocketException;
 import java.util.concurrent.LinkedBlockingQueue;
 
 // Starts the server to establish connections (ServerSocket)
-public class TCPServerThread implements Runnable {
-  private LinkedBlockingQueue<Socket> incomingSockets =
+public class TCPServerThread extends Thread {
+  protected LinkedBlockingQueue<Socket> incomingSockets =
       new LinkedBlockingQueue<>();
-  private ServerSocket sock;
+  protected ServerSocket sock;
+  protected int port;
 
   public TCPServerThread () {
-    try {
-      sock = new ServerSocket(0);
-    } catch (IOException e) {
-      System.err.println(e);
-    }
+    this.port = 0;
   }
 
   public TCPServerThread (int port) {
-    try {
-      sock = new ServerSocket(port);
-    } catch (IOException e) {
-      System.err.println(e);
-    }
+    this.port = port;
   }
 
   @Override
   public void run() {
-    System.out.println("STARTING TCP SERVER");
+    try {
+      sock = new ServerSocket(port);
+      startServer();
+    }
+    catch (Exception e) {
+      System.out.println("CLOSING SERVERSOCKET");
+    }
+  }
+
+  private void startServer () {
     try {
       do {
         Socket incoming = sock.accept();
         incomingSockets.add(incoming);
       } while (true);
+    } catch (SocketException e) {
+      System.out.println("CLOSING SERVER SOCKET");
+    } catch (Exception e) {
+      System.out.println(e);
     }
-    catch (SocketException e) {
-      System.out.println("CLOSING SERVERSOCKET");
-    }
-    catch (Exception e) {
-      System.err.println(e);
-    }
+  }
+
+  public ServerSocket getServerSocket () {
+    return sock;
   }
 
   public synchronized Socket getSocket () {

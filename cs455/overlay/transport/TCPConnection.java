@@ -7,9 +7,9 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class TCPConnection implements Runnable {
-  private Thread threadRecv;
-  private Thread threadSend;
+public class TCPConnection extends Thread {
+  private TCPReceiverThread threadRecv;
+  private TCPSenderThread threadSend;
   private Socket sock;
 
   private LinkedBlockingQueue<Event> queueRecv = new LinkedBlockingQueue<>();
@@ -22,14 +22,14 @@ public class TCPConnection implements Runnable {
       System.err.println(e);
     }
 
-    threadRecv = new Thread(new TCPReceiverThread(queueRecv, sock));
-    threadSend = new Thread(new TCPSenderThread(queueSend, sock));
+    threadRecv = new TCPReceiverThread(queueRecv, sock);
+    threadSend = new TCPSenderThread(queueSend, sock);
   }
 
   public TCPConnection(Socket sock) {
     this.sock = sock;
-    threadRecv = new Thread(new TCPReceiverThread(queueRecv, sock));
-    threadSend = new Thread(new TCPSenderThread(queueSend, sock));
+    threadRecv = new TCPReceiverThread(queueRecv, sock);
+    threadSend = new TCPSenderThread(queueSend, sock);
   }
 
   @Override
@@ -42,7 +42,7 @@ public class TCPConnection implements Runnable {
 
     try {
       sock.close();
-      threadRecv.interrupt();
+      threadRecv.killMe();
       threadSend.interrupt();
 
       threadRecv.join();
@@ -76,11 +76,19 @@ public class TCPConnection implements Runnable {
     return getHost().hashCode();
   }
 
+
   public synchronized void sendMessage (Event e) {
     queueSend.add(e);
   }
 
   public synchronized Event receiveMessage () {
     return queueRecv.poll();
+  }
+
+  public synchronized byte checkMessage () {
+    Event event = queueRecv.peek();
+    if (event != null)
+      return event.getType();
+    return 0;
   }
 }

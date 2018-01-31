@@ -21,25 +21,23 @@ public class EventFactory {
     try (ByteArrayInputStream instream = new ByteArrayInputStream(bytes);
          DataInputStream din
              = new DataInputStream(new BufferedInputStream(instream))) {
-
       type = din.readByte();
     } catch (IOException e) {
-      System.err.println(e);
+      System.err.println("ERROR PARSING TYPE: " + e);
     }
-
     return type;
   }
 
   public static Event createEvent (byte[] bytes) {
     switch(parseType(bytes)) {
       case Protocol.OVERLAY_NODE_SENDS_REGISTRATION:
-        new OverlayNodeSendsRegistration(bytes);
+        return new OverlayNodeSendsRegistration(bytes);
       case Protocol.REGISTRY_REPORTS_REGISTRATION_STATUS:
-        new RegistryReportsRegistrationStatus(bytes);
+        return new RegistryReportsRegistrationStatus(bytes);
       case Protocol.OVERLAY_NODE_SENDS_DEREGISTRATION:
-        new OverlayNodeSendsDeregistration(bytes);
+        return new OverlayNodeSendsRegistration(bytes);
       case Protocol.REGISTRY_REPORTS_DEREGISTRATION_STATUS:
-        new RegistryReportsDeregistrationStatus(bytes);
+        return new RegistryReportsDeregistrationStatus(bytes);
     }
     return null;
   }

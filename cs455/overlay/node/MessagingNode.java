@@ -1,57 +1,73 @@
 package cs455.overlay.node;
 
 import cs455.overlay.transport.TCPConnection;
-import cs455.overlay.util.EventWithConn;
+import cs455.overlay.wireformats.Event;
+import cs455.overlay.wireformats.OverlayNodeSendsRegistration;
 
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class MessagingNode extends Node {
-  TCPConnection registrySocket;
-
-  public static void main (String[] args) {
-    new MessagingNode(args[0], Integer.parseInt(args[1]));
-  }
-
-  private Socket sock;
+  private TCPConnection connRegistry;
 
   MessagingNode (String host, int port) {
     super();
-    sendRegistration (host, port);
-
-    System.out.println("STARTING MESSAGING NODE");
-
-    String msgCommand;
-    EventWithConn eventReceive;
-
     startThreads();
 
-    do {
-      msgCommand = command.getMessage();
-      eventReceive = cache.getEvent();
-      if (eventReceive != null)
-        onEvent(eventReceive);
+    sendRegistration (host, port);
+    System.out.println("STARTING MESSAGING NODE");
 
-      if (msgCommand != null) {
-        acceptCommand(msgCommand);
-      }
+    do {
+      acceptCommands();
     } while (!exit);
 
+    connRegistry.interrupt();
+    try {
+      connRegistry.join();
+    } catch (InterruptedException e) {
+      System.err.println(e);
+    }
     stopAllThreads();
   }
 
   private void sendRegistration (String host, int port) {
-    registrySocket = new TCPConnection(host, port);
+    System.out.println("TRYING TO CONNECT TO: " + host + ":" + port);
+    connRegistry = new TCPConnection(host, port);
+    connRegistry.start();
+    int localPort = server.getServerSocket().getLocalPort();
+
+    String localHostname = "";
+    try {
+      localHostname = InetAddress.getLocalHost().getHostAddress();
+    } catch (UnknownHostException e) {
+      System.err.println(e);
+    }
+
+    OverlayNodeSendsRegistration event = new OverlayNodeSendsRegistration(localHostname, localPort);
+    connRegistry.sendMessage(event);
   }
 
-  private void acceptCommand (String msg) {
-    switch (msg) {
-      case "exit":
+  private void acceptCommands () {
+    String msgCommand = command.getMessage();
+    if (msgCommand == null)
+      return;
+
+    switch (msgCommand) {
+      case "exit-overlay":
         exit = true;
+        break;
     }
   }
 
   @Override
-  protected void onEvent (EventWithConn event) {
+  protected void onEvent (Event event) {
 
+  }
+
+  // MAIN
+
+  public static void main (String[] args) {
+    new MessagingNode(args[0], Integer.parseInt(args[1]));
   }
 }

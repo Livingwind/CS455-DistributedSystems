@@ -8,11 +8,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class InteractiveCommandParser implements Runnable {
-  private LinkedBlockingQueue<String> queue;
-  public InteractiveCommandParser () {
-    queue = new LinkedBlockingQueue<>();
-  }
+public class InteractiveCommandParser extends Thread {
+  private LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<>();
+  public InteractiveCommandParser () {}
 
   @Override
   public void run() {
@@ -20,13 +18,11 @@ public class InteractiveCommandParser implements Runnable {
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){
       do {
-        while (!br.ready()) {
-          Thread.sleep(1);
-        };
-        queue.put(br.readLine());
-      } while (true);
+        if (br.ready())
+          queue.put(br.readLine());
+      } while (!Thread.interrupted());
     } catch (InterruptedException e) {
-      System.out.println("STOPPPING PARSER");
+      System.out.println("STOPPING PARSER");
     } catch (Exception e) {
       System.err.println(e);
     }

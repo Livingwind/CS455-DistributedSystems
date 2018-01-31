@@ -50,6 +50,7 @@ public class RegistryReportsRegistrationStatus implements Event {
       dout.writeByte(info.length());
       dout.writeBytes(info);
 
+      dout.flush();
       bytes = outstream.toByteArray();
     } catch (IOException e) {
       System.err.println(e);
@@ -71,6 +72,6 @@ public class RegistryReportsRegistrationStatus implements Event {
 
   @Override
   public String toString () {
-    return String.format("TYPE: %1\n" + "STATUS: %2\n" + "INFO: %3", type, status, info);
+    return String.format("TYPE: %d\n" + "STATUS: %d\n" + "INFO: %s", type, status, info);
   }
 }

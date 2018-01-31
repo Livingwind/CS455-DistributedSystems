@@ -49,7 +49,6 @@ public class OverlayNodeSendsRegistration implements Event {
     try (ByteArrayOutputStream outstream = new ByteArrayOutputStream();
          DataOutputStream dout
          = new DataOutputStream(new BufferedOutputStream(outstream))) {
-
       dout.writeByte(type);
 
       dout.writeByte(hostname.length());
@@ -57,11 +56,13 @@ public class OverlayNodeSendsRegistration implements Event {
 
       dout.writeInt(port);
 
+      dout.flush();
       bytes = outstream.toByteArray();
 
     } catch (IOException e) {
       System.err.println(e);
     }
+
     return bytes;
   }
 
@@ -79,6 +80,6 @@ public class OverlayNodeSendsRegistration implements Event {
 
   @Override
   public String toString () {
-    return String.format("TYPE: %1\n" + "HOSTNAME: %2\n" + "PORT: %3", type, hostname, port);
+    return String.format("TYPE: %d\n" + "HOSTNAME: %s\n" + "PORT: %d", type, hostname, port);
   }
 }
