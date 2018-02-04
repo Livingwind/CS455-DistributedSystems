@@ -2,8 +2,7 @@ package cs455.overlay.wireformats;
 
 import java.io.*;
 
-public class OverlayNodeSendsRegistration implements Event {
-  private byte type;
+public class OverlayNodeSendsRegistration extends Event {
   private String hostname;
   private int port;
 
@@ -25,18 +24,11 @@ public class OverlayNodeSendsRegistration implements Event {
   // I have taken the liberties of using DataOutputStream.writeBytes(String) vs
   //  DataOutputStream.write(byte[]) for simplicity
   public OverlayNodeSendsRegistration (byte[] bytes) {
+    super(bytes);
     try (ByteArrayInputStream instream = new ByteArrayInputStream(bytes);
          DataInputStream din
           = new DataInputStream(new BufferedInputStream(instream))) {
 
-      type = din.readByte();
-
-      byte hostLength = din.readByte();
-      byte[] hostBytes = new byte[hostLength];
-      din.readFully(hostBytes);
-
-      hostname = new String(hostBytes);
-      port = din.readInt();
 
     } catch (IOException e) {
       System.err.println(e);
@@ -44,26 +36,23 @@ public class OverlayNodeSendsRegistration implements Event {
   }
 
   @Override
-  public byte[] getBytes () {
-    byte[] bytes = null;
-    try (ByteArrayOutputStream outstream = new ByteArrayOutputStream();
-         DataOutputStream dout
-         = new DataOutputStream(new BufferedOutputStream(outstream))) {
-      dout.writeByte(type);
+  protected void readBytes () throws IOException {
+    type = din.readByte();
 
-      dout.writeByte(hostname.length());
-      dout.writeBytes(hostname);
+    byte hostLength = din.readByte();
+    byte[] hostBytes = new byte[hostLength];
+    din.readFully(hostBytes);
 
-      dout.writeInt(port);
+    hostname = new String(hostBytes);
+    port = din.readInt();
+  }
 
-      dout.flush();
-      bytes = outstream.toByteArray();
-
-    } catch (IOException e) {
-      System.err.println(e);
-    }
-
-    return bytes;
+  @Override
+  protected void writeBytes () throws IOException {
+    dout.writeByte(type);
+    dout.writeByte(hostname.length());
+    dout.writeBytes(hostname);
+    dout.writeInt(port);
   }
 
   public String getHostname () {

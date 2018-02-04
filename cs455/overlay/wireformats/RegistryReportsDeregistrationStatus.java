@@ -2,7 +2,7 @@ package cs455.overlay.wireformats;
 
     import java.io.*;
 
-public class RegistryReportsDeregistrationStatus implements Event {
+public class RegistryReportsDeregistrationStatus extends Event {
   private byte type;
   private int status;   // ID if successful, -1 otherwise
   private String info;
@@ -22,40 +22,26 @@ public class RegistryReportsDeregistrationStatus implements Event {
    */
 
   public RegistryReportsDeregistrationStatus(byte[] bytes) {
-    try (ByteArrayInputStream instream = new ByteArrayInputStream(bytes);
-         DataInputStream din
-             = new DataInputStream(new BufferedInputStream(instream))) {
-
-      type = din.readByte();
-      status = din.readInt();
-
-      byte infoLen = din.readByte();
-      byte[] infoBytes = new byte[infoLen];
-      din.readFully(infoBytes);
-      info = new String(infoBytes);
-    } catch (IOException e) {
-      System.err.println(e);
-    }
+    super(bytes);
   }
 
   @Override
-  public byte[] getBytes() {
-    byte[] bytes = null;
-    try (ByteArrayOutputStream outstream = new ByteArrayOutputStream();
-         DataOutputStream dout
-             = new DataOutputStream(new BufferedOutputStream(outstream))) {
+  protected void readBytes () throws IOException {
+    type = din.readByte();
+    status = din.readInt();
 
-      dout.writeByte(type);
-      dout.writeInt(status);
-      dout.writeByte(info.length());
-      dout.writeBytes(info);
+    byte infoLen = din.readByte();
+    byte[] infoBytes = new byte[infoLen];
+    din.readFully(infoBytes);
+    info = new String(infoBytes);
+  }
 
-      dout.flush();
-      bytes = outstream.toByteArray();
-    } catch (IOException e) {
-      System.err.println(e);
-    }
-    return bytes;
+  @Override
+  protected void writeBytes () throws IOException {
+    dout.writeByte(type);
+    dout.writeInt(status);
+    dout.writeByte(info.length());
+    dout.writeBytes(info);
   }
 
   public int getStatus () {

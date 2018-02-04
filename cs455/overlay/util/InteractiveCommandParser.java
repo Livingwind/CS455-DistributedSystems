@@ -14,15 +14,13 @@ public class InteractiveCommandParser extends Thread {
 
   @Override
   public void run() {
-    System.out.println("STARTING COMMAND PARSER");
+    System.out.println("ACCEPTING COMMANDS:");
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))){
       do {
         if (br.ready())
           queue.put(br.readLine());
       } while (!Thread.interrupted());
-    } catch (InterruptedException e) {
-      System.out.println("STOPPING PARSER");
     } catch (Exception e) {
       System.err.println(e);
     }

@@ -8,4 +8,7 @@ public class RoutingTable {
   public void add(RoutingEntry entry) {
     table.add(entry);
   }
+  public int size() {
+    return table.size();
+  }
 }

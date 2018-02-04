@@ -38,7 +38,7 @@ public class TCPConnection extends Thread {
     threadRecv.start();
     threadSend.start();
 
-    while (!Thread.interrupted()) {}
+    while (!Thread.interrupted() && !sock.isClosed()) {}
 
     try {
       sock.close();
@@ -64,6 +64,12 @@ public class TCPConnection extends Thread {
       String other = (String) obj;
       return getHost().equals(other);
     }
+    else if (obj instanceof TCPConnection) {
+      TCPConnection other = (TCPConnection) obj;
+
+      // The socket should have a JVM hashcode that's unique
+      return sock == other.sock;
+    }
     return false;
   }
 
@@ -75,7 +81,6 @@ public class TCPConnection extends Thread {
   public int hashCode() {
     return getHost().hashCode();
   }
-
 
   public synchronized void sendMessage (Event e) {
     queueSend.add(e);

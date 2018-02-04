@@ -26,9 +26,10 @@ public class TCPSenderThread extends Thread {
 
   @Override
   public void run() {
-    Event event = null;
+    Event event;
     byte[] msgInBytes;
     int msgByteLength;
+
     do {
       event = queue.poll();
       if (event != null) {

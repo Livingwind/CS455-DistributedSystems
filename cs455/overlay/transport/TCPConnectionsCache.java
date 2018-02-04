@@ -4,13 +4,11 @@ import cs455.overlay.wireformats.Event;
 
 import java.net.Socket;
 import java.util.Vector;
-import java.util.concurrent.LinkedBlockingQueue;
 
 // Contains all the sockets for each established connection
 public class TCPConnectionsCache extends Thread {
   private TCPServerThread server;
   private Vector<TCPConnection> cache = new Vector<>();
-  private LinkedBlockingQueue<Event> events = new LinkedBlockingQueue<>();
 
   public TCPConnectionsCache (TCPServerThread server) {
     this.server = server;
@@ -20,12 +18,12 @@ public class TCPConnectionsCache extends Thread {
     cache.add(conn);
   }
 
-  public int size () {
-    return cache.size();
-  }
-
   public synchronized Vector<TCPConnection> getCache () {
     return cache;
+  }
+
+  public int size () {
+    return cache.size();
   }
 
   private void closeAllConnections () {
@@ -39,7 +37,7 @@ public class TCPConnectionsCache extends Thread {
     }
   }
 
-  private void createTCPConnection (Socket sock) {
+  private synchronized void createTCPConnection (Socket sock) {
     TCPConnection temp = new TCPConnection(sock);
     temp.start();
     cache.add(temp);
@@ -51,7 +49,6 @@ public class TCPConnectionsCache extends Thread {
       Socket sock = server.getSocket();
       if (sock != null)
         createTCPConnection(sock);
-
     } while (!Thread.interrupted());
     closeAllConnections();
   }

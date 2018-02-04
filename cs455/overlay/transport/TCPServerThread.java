@@ -39,7 +39,6 @@ public class TCPServerThread extends Thread {
         incomingSockets.add(incoming);
       } while (true);
     } catch (SocketException e) {
-      System.out.println("CLOSING SERVER SOCKET");
     } catch (Exception e) {
       System.out.println(e);
     }

@@ -30,8 +30,6 @@ public abstract class Node {
   }
 
   protected void stopAllThreads () {
-    System.out.println("SENDING INTERRUPTS");
-
     server.killMe();
     command.interrupt();
     cache.interrupt();
@@ -46,5 +44,15 @@ public abstract class Node {
     System.out.println("JOINED ALL THREADS. EXITING");
   }
 
-  protected abstract void onEvent (Event event);
+  protected abstract void parseCommand(String msg);
+
+  protected void acceptCommand () {
+    String msgCommand = command.getMessage();
+    if (msgCommand == null)
+      return;
+
+    parseCommand(msgCommand);
+  }
+
+  protected abstract void checkForEvents ();
 }

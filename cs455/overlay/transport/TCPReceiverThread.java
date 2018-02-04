@@ -42,18 +42,21 @@ public class TCPReceiverThread extends Thread {
         System.out.println("RECEIVED: \n" + createdEvent);
         queue.put(createdEvent);
 
-      } while (sock != null);
-    } catch (SocketException e) {
-      System.out.println("CLOSING TCP RECEIVER");
+      } while (!sock.isClosed());
     } catch (Exception e) {
-      System.err.println("CONNECTION CLOSED UNEXPECTEDLY");
+      System.err.println("CONNECTION CLOSED");
+    }
+
+    try {
+      sock.close();
+    } catch (Exception e) {
+      System.err.println(e);
     }
   }
 
   public synchronized void killMe () {
     try {
       sock.close();
-      sock = null;
     } catch (IOException e) {
       System.err.println(e);
     }

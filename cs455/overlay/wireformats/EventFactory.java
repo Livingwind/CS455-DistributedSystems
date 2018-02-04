@@ -35,9 +35,11 @@ public class EventFactory {
       case Protocol.REGISTRY_REPORTS_REGISTRATION_STATUS:
         return new RegistryReportsRegistrationStatus(bytes);
       case Protocol.OVERLAY_NODE_SENDS_DEREGISTRATION:
-        return new OverlayNodeSendsRegistration(bytes);
+        return new OverlayNodeSendsDeregistration(bytes);
       case Protocol.REGISTRY_REPORTS_DEREGISTRATION_STATUS:
         return new RegistryReportsDeregistrationStatus(bytes);
+      case Protocol.REGISTRY_SENDS_NODE_MANIFEST:
+        return new RegistrySendsNodeManifest(bytes);
     }
     return null;
   }
