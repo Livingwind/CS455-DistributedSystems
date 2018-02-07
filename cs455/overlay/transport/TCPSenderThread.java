@@ -33,8 +33,6 @@ public class TCPSenderThread extends Thread {
     do {
       event = queue.poll();
       if (event != null) {
-        System.out.println("SENDING: \n" + event);
-
         msgInBytes = event.getBytes();
         msgByteLength = msgInBytes.length;
 

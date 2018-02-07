@@ -15,13 +15,8 @@ public class TCPConnection extends Thread {
   private LinkedBlockingQueue<Event> queueRecv = new LinkedBlockingQueue<>();
   private LinkedBlockingQueue<Event> queueSend = new LinkedBlockingQueue<>();
 
-  public TCPConnection(String host, int port) {
-    try {
-      this.sock = new Socket(host, port);
-    } catch (IOException e) {
-      System.err.println(e);
-    }
-
+  public TCPConnection(String host, int port) throws IOException {
+    this.sock = new Socket(host, port);
     threadRecv = new TCPReceiverThread(queueRecv, sock);
     threadSend = new TCPSenderThread(queueSend, sock);
   }
@@ -34,7 +29,6 @@ public class TCPConnection extends Thread {
 
   @Override
   public void run() {
-    System.out.println("STARTING TCPCONNECTION");
     threadRecv.start();
     threadSend.start();
 
@@ -50,8 +44,6 @@ public class TCPConnection extends Thread {
     } catch (Exception e) {
       System.err.println(e);
     }
-
-    System.out.println("ENDING TCPCONNECTION");
   }
 
   public String getHost () {
@@ -82,18 +74,19 @@ public class TCPConnection extends Thread {
     return getHost().hashCode();
   }
 
-  public synchronized void sendMessage (Event e) {
+  public void sendMessage (Event e) {
     queueSend.add(e);
   }
 
-  public synchronized Event receiveMessage () {
+  public Event receiveMessage () {
     return queueRecv.poll();
   }
 
-  public synchronized byte checkMessage () {
+  public byte checkMessage () {
     Event event = queueRecv.peek();
-    if (event != null)
+    if (event != null) {
       return event.getType();
+    }
     return 0;
   }
 }

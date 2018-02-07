@@ -7,6 +7,7 @@ public class RegistryEntry implements Comparable<RegistryEntry>{
   public String hostname;
   public int receivingPort;
   public int id;
+  public RoutingTable routes = new RoutingTable();
 
   public boolean ready = false;
   public boolean finished = false;

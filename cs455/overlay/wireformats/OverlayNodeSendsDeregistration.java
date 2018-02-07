@@ -3,7 +3,6 @@ package cs455.overlay.wireformats;
 import java.io.*;
 
 public class OverlayNodeSendsDeregistration extends Event{
-  private byte type;
   private String hostname;
   private int port;
   private int id;
@@ -58,11 +57,6 @@ public class OverlayNodeSendsDeregistration extends Event{
   }
   public int getId () {
     return id;
-  }
-
-  @Override
-  public byte getType () {
-    return type;
   }
 
   @Override

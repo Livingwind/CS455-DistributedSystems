@@ -5,6 +5,7 @@ import cs455.overlay.routing.RoutingTable;
 import cs455.overlay.transport.TCPConnection;
 import cs455.overlay.wireformats.*;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -17,7 +18,7 @@ public class MessagingNode extends Node {
   private int localPort;
   private int registryId;
 
-  private RoutingTable routing;
+  private RoutingTable routing = new RoutingTable();
   private int[] nodes;
 
   MessagingNode (String host, int port) {
@@ -29,14 +30,14 @@ public class MessagingNode extends Node {
   private void programLoop () {
     startThreads();
 
-    if (!sendRegistration (registryHost, registryPort))
-      return;
-
-    System.out.println("STARTING NODE");
-    while (!exit) {
-      checkForEvents();
-      acceptCommand();
-    };
+    if(sendRegistration (registryHost, registryPort)) {
+      System.out.println("STARTING NODE");
+      while (!exit) {
+        checkRegistryStatus();
+        checkForEvents();
+        acceptCommand();
+      }
+    }
 
     connRegistry.interrupt();
     try {
@@ -46,6 +47,13 @@ public class MessagingNode extends Node {
     }
 
     stopAllThreads();
+  }
+
+  private void checkRegistryStatus () {
+    if (!connRegistry.isAlive()) {
+      exit = true;
+      System.out.println("LOST CONNECTION TO THE REGISTRY. EXITING");
+    }
   }
 
   @Override
@@ -66,7 +74,12 @@ public class MessagingNode extends Node {
 
   private boolean sendRegistration (String host, int port) {
     System.out.println("TRYING TO CONNECT TO: " + host + ":" + port);
-    connRegistry = new TCPConnection(host, port);
+    try {
+      connRegistry = new TCPConnection(host, port);
+    } catch (IOException ioe) {
+      System.err.println("COULD NOT CONNECT TO THE REGISTRY.");
+      return false;
+    }
     connRegistry.start();
 
     localPort = server.getServerSocket().getLocalPort();
@@ -130,13 +143,13 @@ public class MessagingNode extends Node {
     switch(type) {
       case Protocol.REGISTRY_SENDS_NODE_MANIFEST:
         handleManifest();
-        return;
+        break;
       case Protocol.REGISTRY_REQUESTS_TASK_INITIATE:
         handleInitiate();
-        return;
+        break;
       case Protocol.REGISTRY_REQUESTS_TRAFFIC_SUMMARY:
         handleSummary();
-        return;
+        break;
     }
   }
 
@@ -157,6 +170,18 @@ public class MessagingNode extends Node {
     routing = event.getTable();
     nodes = event.getNodes();
 
+    try {
+      for (RoutingEntry entry : routing.table)
+        entry.createTCPConnection();
+    } catch (IOException ioe) {
+      connRegistry.sendMessage(new NodeReportsOverlaySetupStatus(-1,
+      "Couldn't establish connection to all routing nodes."));
+      System.err.println("ERROR: Could not communicate to all routing table nodes.");
+      return;
+    }
+
+    connRegistry.sendMessage(new NodeReportsOverlaySetupStatus(registryId, "Setup successful."));
+    System.out.println("ALERT: Successfully connected to all routing table nodes.");
   }
 
   private void handleInitiate () {

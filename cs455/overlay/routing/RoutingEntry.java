@@ -2,6 +2,8 @@ package cs455.overlay.routing;
 
 import cs455.overlay.transport.TCPConnection;
 
+import java.io.IOException;
+
 public class RoutingEntry {
   private TCPConnection conn;
   private String hostname;
@@ -19,8 +21,9 @@ public class RoutingEntry {
     this.conn = conn;
   }
 
-  public void addConn (TCPConnection conn) {
-    this.conn = conn;
+  public void createTCPConnection () throws IOException {
+    conn = new TCPConnection(hostname, port);
+    conn.start();
   }
 
   public TCPConnection getConn () {

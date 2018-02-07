@@ -40,6 +40,14 @@ public class EventFactory {
         return new RegistryReportsDeregistrationStatus(bytes);
       case Protocol.REGISTRY_SENDS_NODE_MANIFEST:
         return new RegistrySendsNodeManifest(bytes);
+      case Protocol.NODE_REPORTS_OVERLAY_SETUP_STATUS:
+        return new NodeReportsOverlaySetupStatus(bytes);
+      case Protocol.REGISTRY_REQUESTS_TASK_INITIATE:
+        return new RegistryRequestsTaskInitiate(bytes);
+      case Protocol.OVERLAY_NODE_SENDS_DATA:
+        return new OverlayNodeSendsData(bytes);
+      case Protocol.OVERLAY_NODE_REPORTS_TASK_FINISHED:
+        return new OverlayNodeReportsTaskFinished(bytes);
     }
     return null;
   }

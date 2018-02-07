@@ -10,10 +10,13 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Registry extends Node {
   private Random rand = new Random();
   private Vector<RegistryEntry> entries = new Vector<>();
+
+  private boolean allReady = false;
 
   Registry (int port) {
     super(port);
@@ -38,7 +41,7 @@ public class Registry extends Node {
     while (iter.hasNext()) {
       RegistryEntry entry = iter.next();
       if (!entry.conn.isAlive()) {
-        System.out.println(String.format("!REMOVING BROKEN CONNECTION FROM REGISTRY:\n\t%s", entry.hostname));
+        System.out.println(String.format("ERROR: Removing broken connection from registry:\n\t%s", entry.hostname));
         iter.remove();
       }
     }
@@ -85,7 +88,7 @@ public class Registry extends Node {
   }
 
   private void handleSetup(int tableSize) {
-    System.out.println("SETTING UP OVERLAY WITH TABLE SIZE " + tableSize);
+    System.out.println("SIGNAL: Setting up overlay with routing table size " + tableSize);
     Collections.sort(entries);
     int[] allIds = new int[entries.size()];
     for (int i = 0; i < entries.size(); i++)
@@ -106,10 +109,32 @@ public class Registry extends Node {
 
       event = new RegistrySendsNodeManifest(table, allIds);
       entry.conn.sendMessage(event);
+      entry.routes = table;
     }
   }
 
   private void handleRoutingTables() {
+    StringBuilder s = new StringBuilder();
+    for (RegistryEntry entry: entries) {
+      s.append(String.format(
+        "%10s|%20s|%10s|%10s|\n",
+        "Node " + entry.id,
+        "Hostname", "Port", "NodeID"
+      ));
+
+      int index = 1;
+      for (RoutingEntry route: entry.routes.table) {
+        s.append(String.format(
+          "%10d|%20s|%10d|%10d|\n",
+          index, route.getHostname(), route.getPort(), route.nodeId()
+        ));
+        index++;
+      }
+      s.append("\n");
+    }
+
+
+    System.out.println(s);
   }
 
   private void handleStart(int size) {
@@ -118,9 +143,9 @@ public class Registry extends Node {
   // CHECKING FOR NEW REGISTRATIONS
 
   private void checkForRegistrationRequests () {
-    Vector<TCPConnection> cacheCopy = new Vector<TCPConnection>(cache.getCache());
-
-    for (TCPConnection conn: cacheCopy) {
+    ConcurrentHashMap<String, TCPConnection> temp = cache.getCache();
+    for (String key: temp.keySet()) {
+      TCPConnection conn = temp.get(key);
       if (conn.checkMessage() == Protocol.OVERLAY_NODE_SENDS_REGISTRATION) {
         registerNode(conn);
       }
@@ -144,6 +169,7 @@ public class Registry extends Node {
     if (!entries.contains(new RegistryEntry(null, hostname, port, id))) {
       entries.add(new RegistryEntry(conn, hostname, port, id));
       conn.sendMessage(new RegistryReportsRegistrationStatus(id, "Registration successful."));
+      System.out.println("ALERT: New registration with id " + id);
     }
     else {
       conn.sendMessage(new RegistryReportsRegistrationStatus(-1, "MessengerNode already in Registry."));
@@ -154,24 +180,24 @@ public class Registry extends Node {
 
   @Override
   protected void checkForEvents () {
-    Vector<RegistryEntry> copyEntries = new Vector<>(entries);
-
-    for (RegistryEntry entry: copyEntries) {
+    for (int i = 0; i < entries.size(); i++) {
+      RegistryEntry entry = entries.get(i);
       byte type = entry.conn.checkMessage();
-      if (type == 0)
-        return;
-
-      switch (type) {
-        case Protocol.OVERLAY_NODE_SENDS_DEREGISTRATION:
-          handleDeregister(entry);
-          return;
-        case Protocol.NODE_REPORTS_OVERLAY_SETUP_STATUS:
-          return;
-        case Protocol.OVERLAY_NODE_REPORTS_TASK_FINISHED:
-          return;
-        case Protocol.OVERLAY_NODE_REPORTS_TRAFFIC_SUMMARY:
-          return;
-      }
+      if (type != 0)
+        switch (type) {
+          case Protocol.OVERLAY_NODE_SENDS_DEREGISTRATION:
+            handleDeregister(entry);
+            break;
+          case Protocol.NODE_REPORTS_OVERLAY_SETUP_STATUS:
+            handleSetupStatus(entry);
+            break;
+          case Protocol.OVERLAY_NODE_REPORTS_TASK_FINISHED:
+            handleTaskFinished(entry);
+            break;
+          case Protocol.OVERLAY_NODE_REPORTS_TRAFFIC_SUMMARY:
+            handleTrafficSummary(entry);
+            break;
+        }
     }
   }
 
@@ -186,7 +212,27 @@ public class Registry extends Node {
       found.conn.sendMessage(new RegistryReportsDeregistrationStatus(
         found.id, "Deregistration successful."
       ));
+      System.out.println("ALERT: Deregistered node with id " + found.id);
     }
+  }
+
+  private void handleSetupStatus (RegistryEntry entry) {
+    NodeReportsOverlaySetupStatus event = (NodeReportsOverlaySetupStatus) entry.conn.receiveMessage();
+    entry.ready = true;
+
+    for (RegistryEntry node: entries) {
+      if (!node.ready)
+        return;
+    }
+    System.out.println("ALERT: Registry now ready to initiate tasks.");
+  }
+
+  private void handleTaskFinished (RegistryEntry entry) {
+
+  }
+
+  private void handleTrafficSummary (RegistryEntry entry) {
+
   }
 
 

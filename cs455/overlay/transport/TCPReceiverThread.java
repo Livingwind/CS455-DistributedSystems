@@ -39,12 +39,10 @@ public class TCPReceiverThread extends Thread {
         din.readFully(data);
 
         createdEvent = EventFactory.createEvent(data);
-        System.out.println("RECEIVED: \n" + createdEvent);
         queue.put(createdEvent);
 
       } while (!sock.isClosed());
     } catch (Exception e) {
-      System.err.println("CONNECTION CLOSED");
     }
 
     try {

@@ -3,22 +3,24 @@ package cs455.overlay.transport;
 import cs455.overlay.wireformats.Event;
 
 import java.net.Socket;
+import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 
 // Contains all the sockets for each established connection
 public class TCPConnectionsCache extends Thread {
   private TCPServerThread server;
-  private Vector<TCPConnection> cache = new Vector<>();
+  private ConcurrentHashMap<String, TCPConnection> cache = new ConcurrentHashMap<>();
 
   public TCPConnectionsCache (TCPServerThread server) {
     this.server = server;
   }
 
   public synchronized void add (TCPConnection conn) {
-    cache.add(conn);
+    cache.put(conn.getHost(), conn);
   }
 
-  public synchronized Vector<TCPConnection> getCache () {
+  public ConcurrentHashMap<String, TCPConnection> getCache () {
     return cache;
   }
 
@@ -27,7 +29,7 @@ public class TCPConnectionsCache extends Thread {
   }
 
   private void closeAllConnections () {
-    for (Thread thread: cache) {
+    for (Thread thread: cache.values()) {
       thread.interrupt();
       try {
         thread.join();
@@ -40,7 +42,7 @@ public class TCPConnectionsCache extends Thread {
   private synchronized void createTCPConnection (Socket sock) {
     TCPConnection temp = new TCPConnection(sock);
     temp.start();
-    cache.add(temp);
+    add(temp);
   }
 
   @Override
