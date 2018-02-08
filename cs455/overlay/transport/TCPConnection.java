@@ -2,6 +2,7 @@ package cs455.overlay.transport;
 
 
 import cs455.overlay.wireformats.Event;
+import cs455.overlay.wireformats.Protocol;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -63,10 +64,6 @@ public class TCPConnection extends Thread {
       return sock == other.sock;
     }
     return false;
-  }
-
-  public Socket getSock () {
-    return sock;
   }
 
   @Override

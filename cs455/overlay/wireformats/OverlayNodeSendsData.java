@@ -47,6 +47,20 @@ public class OverlayNodeSendsData extends Event {
     }
   }
 
+  public int getDest () {
+    return dest;
+  }
+  public int getSrc () {
+    return src;
+  }
+  public int getPayload () {
+    return payload;
+  }
+  public int[] getHops () {
+    return hops;
+  }
+
+
   @Override
   public String toString() {
     return String.format("TYPE: %d\nDESTINATION ID: %d\n" +

@@ -8,6 +8,7 @@ import cs455.overlay.wireformats.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
 
 public class MessagingNode extends Node {
   private String registryHost;
@@ -21,6 +22,13 @@ public class MessagingNode extends Node {
   private RoutingTable routing = new RoutingTable();
   private int[] nodes;
 
+  private int remaining = 0;
+  private int sendTracker = 0;
+  private long sendSummation = 0;
+  private int receiveTracker = 0;
+  private long receiveSummation = 0;
+  private int relayedTracker = 0;
+
   MessagingNode (String host, int port) {
     super();
     registryHost = host;
@@ -31,10 +39,12 @@ public class MessagingNode extends Node {
     startThreads();
 
     if(sendRegistration (registryHost, registryPort)) {
-      System.out.println("STARTING NODE");
+      System.out.println("ALERT: Successfully connected to the registry and given id " +
+          registryId + ". Starting...");
       while (!exit) {
         checkRegistryStatus();
         checkForEvents();
+        createMessages();
         acceptCommand();
       }
     }
@@ -46,38 +56,95 @@ public class MessagingNode extends Node {
       System.err.println(e);
     }
 
+    killTableConnections();
     stopAllThreads();
+  }
+
+  private void killTableConnections () {
+    for (RoutingEntry entry: routing.table) {
+      entry.conn.interrupt();
+      try {
+        entry.conn.join();
+      } catch (InterruptedException e){
+        System.err.println(e);
+      }
+    }
   }
 
   private void checkRegistryStatus () {
     if (!connRegistry.isAlive()) {
       exit = true;
-      System.out.println("LOST CONNECTION TO THE REGISTRY. EXITING");
+      System.out.println("ERROR: Lost connection to the registry. Terminating.");
     }
+  }
+
+  private void printCounters () {
+    System.out.println(String.format(
+      "\nMessages:\n\tSent - %d\n\tReceived - %d\n\tRelayed - %d\nTotal Received: %d\n",
+      sendTracker, receiveTracker, relayedTracker, receiveSummation
+    ));
   }
 
   @Override
   protected void parseCommand (String msg) {
     switch (msg) {
       case "print-counters-and-diagnostics":
+        printCounters();
         break;
       case "exit-overlay":
         waitForDeregistrationStatus();
         exit = true;
         break;
       default:
-        System.out.println("Command [" + msg + "] not recognized.");
+        System.out.println("CMD ERROR: Command [" + msg + "] not recognized.");
     }
+  }
+
+  private void forwardMessage (OverlayNodeSendsData data) {
+    int dest = data.getDest();
+
+    int target = routing.size()-1;
+    for (int i = 0; i < routing.size() - 1; i++) {
+      if (dest >= routing.table.get(i).nodeId() &&
+          dest < routing.table.get(i + 1).nodeId()) {
+        target = i;
+      }
+    }
+
+
+    int[] newHops = new int[data.getHops().length+1];
+    newHops[newHops.length-1] = registryId;
+    Event event = new OverlayNodeSendsData(data.getDest(), data.getSrc(), data.getPayload(), newHops);
+
+    routing.table.get(target).conn.sendMessage(event);
+  }
+
+  private void createMessages () {
+    if (remaining <= 0)
+      return;
+
+    int dest;
+    do {
+      dest = rand.nextInt(nodes.length);
+    } while (nodes[dest] == registryId);
+    int i = rand.nextInt();
+
+    OverlayNodeSendsData event = new OverlayNodeSendsData(nodes[dest], registryId, i,  new int[0]);
+    forwardMessage(event);
+    sendTracker++;
+    sendSummation += i;
+    remaining--;
+    if (remaining <= 0)
+      handleTaskFinished();
   }
 
   // REGISTRATION
 
   private boolean sendRegistration (String host, int port) {
-    System.out.println("TRYING TO CONNECT TO: " + host + ":" + port);
     try {
       connRegistry = new TCPConnection(host, port);
     } catch (IOException ioe) {
-      System.err.println("COULD NOT CONNECT TO THE REGISTRY.");
+      System.err.println("ERROR: Could not establish a connection to the registry.");
       return false;
     }
     connRegistry.start();
@@ -101,7 +168,6 @@ public class MessagingNode extends Node {
       if (event != null && event.getType() == Protocol.REGISTRY_REPORTS_REGISTRATION_STATUS) {
         RegistryReportsRegistrationStatus status = (RegistryReportsRegistrationStatus) event;
         registryId = status.getStatus();
-        System.out.println(status.getInfo());
 
         if (registryId != -1)
           success = true;
@@ -131,8 +197,8 @@ public class MessagingNode extends Node {
 
   @Override
   protected void checkForEvents () {
-    checkForRegistryEvents ();
-    checkForMessages ();
+    checkForRegistryEvents();
+    checkForMessages();
   }
 
   private void checkForRegistryEvents () {
@@ -154,11 +220,11 @@ public class MessagingNode extends Node {
   }
 
   private void checkForMessages () {
-    for (RoutingEntry entry: routing.table) {
-      byte type = entry.getConn().checkMessage();
-
+    for (String key: cache.getCache().keySet()) {
+      TCPConnection conn = cache.getCache().get(key);
+      byte type = conn.checkMessage();
       if (type == Protocol.OVERLAY_NODE_SENDS_DATA) {
-        handleData();
+        handleData(conn);
       }
     }
   }
@@ -169,6 +235,7 @@ public class MessagingNode extends Node {
     RegistrySendsNodeManifest event = (RegistrySendsNodeManifest) connRegistry.receiveMessage();
     routing = event.getTable();
     nodes = event.getNodes();
+    Collections.sort(routing.table);
 
     try {
       for (RoutingEntry entry : routing.table)
@@ -179,20 +246,55 @@ public class MessagingNode extends Node {
       System.err.println("ERROR: Could not communicate to all routing table nodes.");
       return;
     }
+    zeroTotals();
 
     connRegistry.sendMessage(new NodeReportsOverlaySetupStatus(registryId, "Setup successful."));
     System.out.println("ALERT: Successfully connected to all routing table nodes.");
   }
 
   private void handleInitiate () {
+    RegistryRequestsTaskInitiate event = (RegistryRequestsTaskInitiate) connRegistry.receiveMessage();
+    System.out.println(String.format("ALERT: Registry requested %d packets be sent.\n" +
+      "\tStarting relay...", event.getNumPackets()));
+    remaining = event.getNumPackets();
+  }
+
+  private void handleData (TCPConnection conn) {
+    OverlayNodeSendsData event = (OverlayNodeSendsData) conn.receiveMessage();
+
+    if (event.getDest() == registryId) {
+      receiveTracker++;
+      receiveSummation += event.getPayload();
+      return;
+    }
+
+    relayedTracker++;
+    forwardMessage(event);
   }
 
   private void handleSummary () {
+    RegistryRequestsTrafficSummary event = (RegistryRequestsTrafficSummary) connRegistry.receiveMessage();
+    System.out.println("ALERT: Registry requested traffic summary. Responding...");
+    connRegistry.sendMessage(
+      new OverlayNodeReportsTrafficSummary(registryId, sendTracker, sendSummation,
+        relayedTracker, receiveTracker, receiveSummation)
+    );
+    zeroTotals();
   }
 
-  private void handleData () {
+  private void handleTaskFinished () {
+    System.out.println("ALERT: Finished creating messages. Reporting to registry.");
+    connRegistry.sendMessage(new OverlayNodeReportsTaskFinished(localHostname, localPort, registryId));
   }
 
+  private void zeroTotals () {
+    remaining = 0;
+    sendTracker = 0;
+    sendSummation = 0;
+    receiveTracker = 0;
+    receiveSummation = 0;
+    relayedTracker = 0;
+  }
 
   // MAIN
 

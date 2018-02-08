@@ -2,6 +2,7 @@ package cs455.overlay.transport;
 
 import cs455.overlay.wireformats.Event;
 import cs455.overlay.wireformats.EventFactory;
+import cs455.overlay.wireformats.Protocol;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -40,7 +41,6 @@ public class TCPReceiverThread extends Thread {
 
         createdEvent = EventFactory.createEvent(data);
         queue.put(createdEvent);
-
       } while (!sock.isClosed());
     } catch (Exception e) {
     }

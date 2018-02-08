@@ -26,6 +26,10 @@ public class RegistryRequestsTaskInitiate extends Event {
     dout.writeInt(numPackets);
   }
 
+  public int getNumPackets() {
+    return numPackets;
+  }
+
   @Override
   public String toString () {
     return String.format("TYPE: %d\nNUM PACKETS: %d", type, numPackets);

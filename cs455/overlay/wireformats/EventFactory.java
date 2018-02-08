@@ -48,6 +48,10 @@ public class EventFactory {
         return new OverlayNodeSendsData(bytes);
       case Protocol.OVERLAY_NODE_REPORTS_TASK_FINISHED:
         return new OverlayNodeReportsTaskFinished(bytes);
+      case Protocol.REGISTRY_REQUESTS_TRAFFIC_SUMMARY:
+        return new RegistryRequestsTrafficSummary(bytes);
+      case Protocol.OVERLAY_NODE_REPORTS_TRAFFIC_SUMMARY:
+        return new OverlayNodeReportsTrafficSummary(bytes);
     }
     return null;
   }

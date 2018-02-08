@@ -4,8 +4,8 @@ import cs455.overlay.transport.TCPConnection;
 
 import java.io.IOException;
 
-public class RoutingEntry {
-  private TCPConnection conn;
+public class RoutingEntry implements Comparable<RoutingEntry> {
+  public TCPConnection conn;
   private String hostname;
   private int port;
   private int nodeId;
@@ -14,11 +14,6 @@ public class RoutingEntry {
     this.hostname = hostname;
     this.port = port;
     this.nodeId = nodeId;
-  }
-
-  public RoutingEntry (TCPConnection conn, String hostname, int port, int nodeId) {
-    this(hostname, port, nodeId);
-    this.conn = conn;
   }
 
   public void createTCPConnection () throws IOException {
@@ -43,5 +38,10 @@ public class RoutingEntry {
   public String toString () {
     return String.format("NODE ID: %d\nHOSTNAME: %s\nPORT: %d",
             nodeId, hostname, port);
+  }
+
+  @Override
+  public int compareTo(RoutingEntry o) {
+    return nodeId - o.nodeId;
   }
 }

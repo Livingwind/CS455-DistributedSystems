@@ -1,6 +1,7 @@
 package cs455.overlay.transport;
 
 import cs455.overlay.wireformats.Event;
+import cs455.overlay.wireformats.Protocol;
 
 import java.io.DataOutput;
 import java.io.DataOutputStream;
@@ -33,6 +34,7 @@ public class TCPSenderThread extends Thread {
     do {
       event = queue.poll();
       if (event != null) {
+
         msgInBytes = event.getBytes();
         msgByteLength = msgInBytes.length;
 

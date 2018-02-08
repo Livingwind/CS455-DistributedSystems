@@ -4,19 +4,17 @@ import cs455.overlay.routing.RoutingEntry;
 import cs455.overlay.routing.RoutingTable;
 import cs455.overlay.transport.TCPConnection;
 import cs455.overlay.routing.RegistryEntry;
+import cs455.overlay.util.StatisticsCollectorAndDisplay;
 import cs455.overlay.wireformats.*;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Random;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Registry extends Node {
-  private Random rand = new Random();
   private Vector<RegistryEntry> entries = new Vector<>();
-
-  private boolean allReady = false;
+  private StatisticsCollectorAndDisplay stats = new StatisticsCollectorAndDisplay();
+  private long timer;
+  private int numMessages = 0;
 
   Registry (int port) {
     super(port);
@@ -59,16 +57,26 @@ public class Registry extends Node {
         handleListNodes();
         return;
       case "setup-overlay":
+        if (cmd[1] == null) {
+          System.err.println("CMD ERROR: setup-overlay requires a routing size.");
+          return;
+        }
         handleSetup(Integer.parseInt(cmd[1]));
         return;
       case "list-routing-tables":
         handleRoutingTables();
         return;
       case "start":
-        handleStart(Integer.parseInt(cmd[1]));
+        if (cmd[1] == null)
+          System.err.println("CMD ERROR: start requires a number of messages.");
+        else
+          handleStart(Integer.parseInt(cmd[1]));
+        return;
+      case "test":
+        System.out.println(stats);
         return;
       default:
-        System.out.println("Command [" + cmd[0] + "] not recognized.");
+        System.out.println("CMD ERROR: Command [" + cmd[0] + "] not recognized.");
     }
   }
 
@@ -79,12 +87,22 @@ public class Registry extends Node {
       System.out.println("Registry is currently empty.");
       return;
     }
-
+    StringBuilder s = new StringBuilder();
+    String tableFormat = "\u2503%10s\u2503%20s\u2503%12s\u2503\n";
     int index = 0;
+
+
+    s.append(String.format(
+      tableFormat, "NodeID", "Hostname", "Port Number"
+    ));
+
+    Collections.sort(entries);
     for(RegistryEntry entry: entries) {
-      System.out.println(String.format("REGISTRY ENTRY %d:", ++index));
-      System.out.println(entry + "\n");
+      s.append(String.format(
+        tableFormat, entry.id, entry.hostname, entry.receivingPort
+      ));
     }
+    System.out.println(s);
   }
 
   private void handleSetup(int tableSize) {
@@ -115,18 +133,20 @@ public class Registry extends Node {
 
   private void handleRoutingTables() {
     StringBuilder s = new StringBuilder();
+    String tableFormat = "\u2503%8s\u2503%15s\u2503%7s\u2503%7s\u2503\n";
+    s.append(String.format("All Nodes:\n  %s\n\n", getAllIds().toString()));
+
     for (RegistryEntry entry: entries) {
       s.append(String.format(
-        "%10s|%20s|%10s|%10s|\n",
-        "Node " + entry.id,
+        tableFormat, "Node " + entry.id,
         "Hostname", "Port", "NodeID"
       ));
 
       int index = 1;
       for (RoutingEntry route: entry.routes.table) {
         s.append(String.format(
-          "%10d|%20s|%10d|%10d|\n",
-          index, route.getHostname(), route.getPort(), route.nodeId()
+          tableFormat, index, route.getHostname(),
+          route.getPort(), route.nodeId()
         ));
         index++;
       }
@@ -138,6 +158,12 @@ public class Registry extends Node {
   }
 
   private void handleStart(int size) {
+    for (RegistryEntry entry: entries) {
+      entry.finished = false;
+      entry.conn.sendMessage(new RegistryRequestsTaskInitiate(size));
+    }
+    numMessages = size;
+    timer = System.currentTimeMillis();
   }
 
   // CHECKING FOR NEW REGISTRATIONS
@@ -228,13 +254,42 @@ public class Registry extends Node {
   }
 
   private void handleTaskFinished (RegistryEntry entry) {
+    OverlayNodeReportsTaskFinished event = (OverlayNodeReportsTaskFinished) entry.conn.receiveMessage();
+    entry.finished = true;
 
+    for (RegistryEntry node: entries) {
+      if (!node.finished)
+        return;
+    }
+
+    System.out.println("ALERT: Nodes have finished communication in " + (System.currentTimeMillis() - timer) + "ms.\n");
+    try {
+      for (int i = (int)Math.log(numMessages)+1; i > 0; i--) {
+        System.out.print(String.format("\tGenerating traffic summary in %d seconds...\r", i));
+        Thread.sleep(1000);
+      }
+      requestTrafficSummary();
+    } catch (InterruptedException ie) {
+      System.err.println(ie);
+    }
   }
 
   private void handleTrafficSummary (RegistryEntry entry) {
+    OverlayNodeReportsTrafficSummary event = (OverlayNodeReportsTrafficSummary) entry.conn.receiveMessage();
+    entry.waitingForSummary = false;
+    stats.add(event);
 
+    boolean fin = true;
+    for (RegistryEntry node: entries) {
+      if(node.waitingForSummary)
+        fin = false;
+    }
+
+    if (fin) {
+      System.out.println(stats);
+      stats.clear();
+    }
   }
-
 
   // HELPERS
 
@@ -257,6 +312,13 @@ public class Registry extends Node {
       value %= 128;
     }
     return value;
+  }
+
+  private void requestTrafficSummary () {
+    for (RegistryEntry entry: entries) {
+      entry.waitingForSummary = true;
+      entry.conn.sendMessage(new RegistryRequestsTrafficSummary());
+    }
   }
 
   // MAIN

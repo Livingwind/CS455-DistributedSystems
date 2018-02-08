@@ -11,6 +11,7 @@ public class RegistryEntry implements Comparable<RegistryEntry>{
 
   public boolean ready = false;
   public boolean finished = false;
+  public boolean waitingForSummary = false;
 
   public RegistryEntry (TCPConnection conn, String hostname, int port, int nodeId) {
     this.conn = conn;

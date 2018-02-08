@@ -1,12 +1,13 @@
 package cs455.overlay.node;
 
-
 import cs455.overlay.transport.TCPConnectionsCache;
 import cs455.overlay.transport.TCPServerThread;
 import cs455.overlay.util.InteractiveCommandParser;
-import cs455.overlay.wireformats.Event;
+
+import java.util.Random;
 
 public abstract class Node {
+  protected Random rand = new Random();
   protected boolean exit = false;
 
   protected InteractiveCommandParser command = new InteractiveCommandParser();
@@ -41,7 +42,7 @@ public abstract class Node {
     } catch (InterruptedException e) {
       System.err.println(e);
     }
-    System.out.println("JOINED ALL THREADS. EXITING");
+    System.out.println("Termination: All threads cleanly interrupted and joined.");
   }
 
   protected abstract void parseCommand(String msg);
