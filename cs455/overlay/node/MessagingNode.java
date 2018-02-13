@@ -35,9 +35,8 @@ public class MessagingNode extends Node {
     registryPort = port;
   }
 
-  private void programLoop () {
-    startThreads();
-
+  @Override
+  protected void programLoop () {
     if(sendRegistration (registryHost, registryPort)) {
       System.out.println("ALERT: Successfully connected to the registry and given id " +
           registryId + ". Starting...");
@@ -49,15 +48,14 @@ public class MessagingNode extends Node {
       }
     }
 
-    connRegistry.interrupt();
     try {
+      connRegistry.interrupt();
       connRegistry.join();
     } catch (InterruptedException e) {
       System.err.println(e);
     }
 
     killTableConnections();
-    stopAllThreads();
   }
 
   private void killTableConnections () {
@@ -300,6 +298,6 @@ public class MessagingNode extends Node {
 
   public static void main (String[] args) {
     MessagingNode node = new MessagingNode(args[0], Integer.parseInt(args[1]));
-    node.programLoop();
+    node.start();
   }
 }

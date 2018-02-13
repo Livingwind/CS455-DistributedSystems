@@ -36,6 +36,14 @@ public class NodeReportsOverlaySetupStatus extends Event {
     dout.writeBytes(info);
   }
 
+  public int getStatus () {
+    return status;
+  }
+
+  public String getInfo () {
+    return info;
+  }
+
   @Override
   public String toString() {
     return String.format("TYPE: %d\nSTATUS: %d\nINFO: %s", type, status, info);

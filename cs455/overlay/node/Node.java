@@ -24,6 +24,14 @@ public abstract class Node {
     cache = new TCPConnectionsCache(server);
   }
 
+  protected abstract void programLoop ();
+
+  public void start () {
+    startThreads();
+    programLoop();
+    stopAllThreads();
+  }
+
   protected void startThreads () {
     command.start();
     cache.start();

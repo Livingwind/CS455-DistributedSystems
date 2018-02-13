@@ -20,17 +20,14 @@ public class Registry extends Node {
     super(port);
   }
 
-  private void programLoop () {
-    startThreads();
-
+  @Override
+  protected void programLoop () {
     do {
       checkBrokenConnections();
       checkForRegistrationRequests();
       checkForEvents();
       acceptCommand();
     } while (!exit);
-
-    stopAllThreads();
   }
 
   private void checkBrokenConnections () {
@@ -106,6 +103,14 @@ public class Registry extends Node {
   }
 
   private void handleSetup(int tableSize) {
+    if (tableSize > 2*entries.size()) {
+      System.err.println(String.format(
+        "ALERT: Table size of %d is to large for %d registered nodes. Enter a smaller number.",
+        tableSize, entries.size()
+      ));
+    }
+
+
     System.out.println("SIGNAL: Setting up overlay with routing table size " + tableSize);
     Collections.sort(entries);
     int[] allIds = new int[entries.size()];
@@ -158,6 +163,13 @@ public class Registry extends Node {
   }
 
   private void handleStart(int size) {
+    for (RegistryEntry node: entries) {
+      if (!node.ready) {
+        System.err.println("ALERT: Node routing tables incomplete.");
+        return;
+      }
+    }
+
     for (RegistryEntry entry: entries) {
       entry.finished = false;
       entry.conn.sendMessage(new RegistryRequestsTaskInitiate(size));
@@ -244,6 +256,11 @@ public class Registry extends Node {
 
   private void handleSetupStatus (RegistryEntry entry) {
     NodeReportsOverlaySetupStatus event = (NodeReportsOverlaySetupStatus) entry.conn.receiveMessage();
+    if (event.getStatus() == -1) {
+      System.err.println("ALERT: Node " + entry.id + "could not connection to it's routing table.");
+      return;
+    }
+
     entry.ready = true;
 
     for (RegistryEntry node: entries) {
@@ -264,7 +281,7 @@ public class Registry extends Node {
 
     System.out.println("ALERT: Nodes have finished communication in " + (System.currentTimeMillis() - timer) + "ms.\n");
     try {
-      for (int i = (int)Math.log(numMessages)+1; i > 0; i--) {
+      for (int i = (numMessages/10000)+1; i > 0; i--) {
         System.out.print(String.format("\tGenerating traffic summary in %d seconds...\r", i));
         Thread.sleep(1000);
       }
@@ -331,6 +348,6 @@ public class Registry extends Node {
       System.out.println("PORT NOT SPECIFIED");
     System.out.println("Starting registry on port " + port);
     Registry reg = new Registry(port);
-    reg.programLoop();
+    reg.start();
   }
 }
