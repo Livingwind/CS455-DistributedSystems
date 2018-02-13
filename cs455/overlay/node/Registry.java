@@ -103,13 +103,13 @@ public class Registry extends Node {
   }
 
   private void handleSetup(int tableSize) {
-    if (tableSize > 2*entries.size()) {
+    if (Math.pow(2, tableSize) > entries.size() ) {
       System.err.println(String.format(
-        "ALERT: Table size of %d is to large for %d registered nodes. Enter a smaller number.",
+        "ERROR: Table size of %d is to large for %d registered nodes.\n\tEnter a smaller number.",
         tableSize, entries.size()
       ));
+      return;
     }
-
 
     System.out.println("SIGNAL: Setting up overlay with routing table size " + tableSize);
     Collections.sort(entries);
@@ -165,7 +165,7 @@ public class Registry extends Node {
   private void handleStart(int size) {
     for (RegistryEntry node: entries) {
       if (!node.ready) {
-        System.err.println("ALERT: Node routing tables incomplete.");
+        System.err.println("ERROR: Node routing tables incomplete.");
         return;
       }
     }
