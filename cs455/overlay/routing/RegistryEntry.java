@@ -2,9 +2,12 @@ package cs455.overlay.routing;
 
 import cs455.overlay.transport.TCPConnection;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 public class RegistryEntry implements Comparable<RegistryEntry>{
   public TCPConnection conn;
-  public String hostname;
+  public byte[] hostname;
   public int receivingPort;
   public int id;
   public RoutingTable routes = new RoutingTable();
@@ -13,7 +16,7 @@ public class RegistryEntry implements Comparable<RegistryEntry>{
   public boolean finished = false;
   public boolean waitingForSummary = false;
 
-  public RegistryEntry (TCPConnection conn, String hostname, int port, int nodeId) {
+  public RegistryEntry (TCPConnection conn, byte[] hostname, int port, int nodeId) {
     this.conn = conn;
     this.hostname = hostname;
     this.receivingPort = port;
@@ -33,6 +36,15 @@ public class RegistryEntry implements Comparable<RegistryEntry>{
         return true;
     }
     return false;
+  }
+
+  public String getHostString () {
+    try {
+      return InetAddress.getByAddress(hostname).getCanonicalHostName();
+    } catch (UnknownHostException uhe) {
+      uhe.printStackTrace();
+    }
+    return "";
   }
 
   @Override

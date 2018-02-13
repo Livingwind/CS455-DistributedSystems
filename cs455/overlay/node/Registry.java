@@ -7,6 +7,8 @@ import cs455.overlay.routing.RegistryEntry;
 import cs455.overlay.util.StatisticsCollectorAndDisplay;
 import cs455.overlay.wireformats.*;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,7 +38,8 @@ public class Registry extends Node {
     while (iter.hasNext()) {
       RegistryEntry entry = iter.next();
       if (!entry.conn.isAlive()) {
-        System.out.println(String.format("ERROR: Removing broken connection from registry:\n\t%s", entry.hostname));
+        System.out.println(String.format("ERROR: Removing broken connection from registry:\n\t%s",
+          entry.getHostString()));
         iter.remove();
       }
     }
@@ -85,9 +88,7 @@ public class Registry extends Node {
       return;
     }
     StringBuilder s = new StringBuilder();
-    String tableFormat = "\u2503%10s\u2503%20s\u2503%12s\u2503\n";
-    int index = 0;
-
+    String tableFormat = "\u2503%7s\u2503%30s\u2503%12s\u2503\n";
 
     s.append(String.format(
       tableFormat, "NodeID", "Hostname", "Port Number"
@@ -96,14 +97,14 @@ public class Registry extends Node {
     Collections.sort(entries);
     for(RegistryEntry entry: entries) {
       s.append(String.format(
-        tableFormat, entry.id, entry.hostname, entry.receivingPort
+        tableFormat, entry.id, entry.getHostString(), entry.receivingPort
       ));
     }
     System.out.println(s);
   }
 
   private void handleSetup(int tableSize) {
-    if (Math.pow(2, tableSize) > entries.size() ) {
+    if (Math.pow(2, tableSize-1) > entries.size()) {
       System.err.println(String.format(
         "ERROR: Table size of %d is to large for %d registered nodes.\n\tEnter a smaller number.",
         tableSize, entries.size()
@@ -138,7 +139,7 @@ public class Registry extends Node {
 
   private void handleRoutingTables() {
     StringBuilder s = new StringBuilder();
-    String tableFormat = "\u2503%8s\u2503%15s\u2503%7s\u2503%7s\u2503\n";
+    String tableFormat = "\u2503%8s\u2503%30s\u2503%7s\u2503%7s\u2503\n";
     s.append(String.format("All Nodes:\n  %s\n\n", getAllIds().toString()));
 
     for (RegistryEntry entry: entries) {
@@ -150,7 +151,7 @@ public class Registry extends Node {
       int index = 1;
       for (RoutingEntry route: entry.routes.table) {
         s.append(String.format(
-          tableFormat, index, route.getHostname(),
+          tableFormat, index, route.getHostString(),
           route.getPort(), route.nodeId()
         ));
         index++;
@@ -165,7 +166,7 @@ public class Registry extends Node {
   private void handleStart(int size) {
     for (RegistryEntry node: entries) {
       if (!node.ready) {
-        System.err.println("ERROR: Node routing tables incomplete.");
+        System.err.println("ERROR: Node routing tables incomplete.\n\tCannot start relay.");
         return;
       }
     }
@@ -201,7 +202,7 @@ public class Registry extends Node {
       return;
     }
 
-    String hostname = request.getHostname();
+    byte[] hostname = request.getHostname();
     int port = request.getPort();
 
     if (!entries.contains(new RegistryEntry(null, hostname, port, id))) {
@@ -257,7 +258,7 @@ public class Registry extends Node {
   private void handleSetupStatus (RegistryEntry entry) {
     NodeReportsOverlaySetupStatus event = (NodeReportsOverlaySetupStatus) entry.conn.receiveMessage();
     if (event.getStatus() == -1) {
-      System.err.println("ALERT: Node " + entry.id + "could not connection to it's routing table.");
+      System.err.println("ALERT: Node " + entry.id + "could not connect to it's routing table.");
       return;
     }
 
@@ -281,7 +282,7 @@ public class Registry extends Node {
 
     System.out.println("ALERT: Nodes have finished communication in " + (System.currentTimeMillis() - timer) + "ms.\n");
     try {
-      for (int i = (numMessages/10000)+1; i > 0; i--) {
+      for (int i = 15; i > 0; i--) {
         System.out.print(String.format("\tGenerating traffic summary in %d seconds...\r", i));
         Thread.sleep(1000);
       }

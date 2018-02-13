@@ -50,10 +50,9 @@ public class RegistrySendsNodeManifest extends Event {
       byte hostLen = din.readByte();
       byte[] hostBytes = new byte[hostLen];
       din.readFully(hostBytes);
-      String hostname = new String(hostBytes);
 
       int port = din.readInt();
-      entries.add(new RoutingEntry(hostname, port, id));
+      entries.add(new RoutingEntry(hostBytes, port, id));
     }
 
     byte idsSize = din.readByte();
@@ -70,8 +69,8 @@ public class RegistrySendsNodeManifest extends Event {
     dout.write(entries.size());
     for (RoutingEntry entry: entries.table) {
       dout.writeInt(entry.nodeId());
-      dout.writeByte(entry.getHostname().length());
-      dout.writeBytes(entry.getHostname());
+      dout.writeByte(entry.getHostname().length);
+      dout.write(entry.getHostname());
       dout.writeInt(entry.getPort());
     }
     dout.writeByte(nodes.length);

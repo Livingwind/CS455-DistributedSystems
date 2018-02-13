@@ -3,10 +3,10 @@ package cs455.overlay.wireformats;
 import java.io.*;
 
 public class OverlayNodeSendsRegistration extends Event {
-  private String hostname;
+  private byte[] hostname;
   private int port;
 
-  public OverlayNodeSendsRegistration (String hostname, int port) {
+  public OverlayNodeSendsRegistration (byte[] hostname, int port) {
     this.type = Protocol.OVERLAY_NODE_SENDS_REGISTRATION;
     this.hostname = hostname;
     this.port = port;
@@ -43,19 +43,19 @@ public class OverlayNodeSendsRegistration extends Event {
     byte[] hostBytes = new byte[hostLength];
     din.readFully(hostBytes);
 
-    hostname = new String(hostBytes);
+    hostname = hostBytes;
     port = din.readInt();
   }
 
   @Override
   protected void writeBytes () throws IOException {
     dout.writeByte(type);
-    dout.writeByte(hostname.length());
-    dout.writeBytes(hostname);
+    dout.writeByte(hostname.length);
+    dout.write(hostname);
     dout.writeInt(port);
   }
 
-  public String getHostname () {
+  public byte[] getHostname () {
     return hostname;
   }
   public int getPort () {

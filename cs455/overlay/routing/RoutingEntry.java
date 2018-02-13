@@ -3,14 +3,16 @@ package cs455.overlay.routing;
 import cs455.overlay.transport.TCPConnection;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class RoutingEntry implements Comparable<RoutingEntry> {
   public TCPConnection conn;
-  private String hostname;
+  private byte[] hostname;
   private int port;
   private int nodeId;
 
-  public RoutingEntry (String hostname, int port, int nodeId) {
+  public RoutingEntry (byte[] hostname, int port, int nodeId) {
     this.hostname = hostname;
     this.port = port;
     this.nodeId = nodeId;
@@ -24,8 +26,16 @@ public class RoutingEntry implements Comparable<RoutingEntry> {
   public TCPConnection getConn () {
     return conn;
   }
-  public String getHostname () {
+  public byte[] getHostname () {
     return hostname;
+  }
+  public String getHostString () {
+    try {
+      return InetAddress.getByAddress(hostname).getCanonicalHostName();
+    } catch (UnknownHostException uhe) {
+      uhe.printStackTrace();
+    }
+    return "";
   }
   public int getPort () {
     return port;
@@ -36,8 +46,15 @@ public class RoutingEntry implements Comparable<RoutingEntry> {
 
   @Override
   public String toString () {
+    String host = "";
+    try {
+      host = InetAddress.getByAddress(hostname).getCanonicalHostName();
+    } catch (UnknownHostException uhe) {
+      uhe.printStackTrace();
+    }
+
     return String.format("NODE ID: %d\nHOSTNAME: %s\nPORT: %d",
-            nodeId, hostname, port);
+            nodeId, host, port);
   }
 
   @Override

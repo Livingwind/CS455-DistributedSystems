@@ -11,11 +11,11 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 
 public class MessagingNode extends Node {
-  private String registryHost;
+  private byte[] registryHost;
   private int registryPort;
 
   private TCPConnection connRegistry;
-  private String localHostname = "";
+  private byte[] localHostname;
   private int localPort;
   private int registryId;
 
@@ -31,7 +31,11 @@ public class MessagingNode extends Node {
 
   MessagingNode (String host, int port) {
     super();
-    registryHost = host;
+    try {
+      registryHost = InetAddress.getByName(host).getAddress();
+    } catch (UnknownHostException uhe) {
+      uhe.printStackTrace();
+    }
     registryPort = port;
   }
 
@@ -138,7 +142,7 @@ public class MessagingNode extends Node {
 
   // REGISTRATION
 
-  private boolean sendRegistration (String host, int port) {
+  private boolean sendRegistration (byte[] host, int port) {
     try {
       connRegistry = new TCPConnection(host, port);
     } catch (IOException ioe) {
@@ -150,7 +154,7 @@ public class MessagingNode extends Node {
     localPort = server.getServerSocket().getLocalPort();
 
     try {
-      localHostname = InetAddress.getLocalHost().getHostAddress();
+      localHostname = InetAddress.getLocalHost().getAddress();
     } catch (UnknownHostException e) {
       System.err.println(e);
     }

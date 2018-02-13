@@ -5,6 +5,7 @@ import cs455.overlay.wireformats.Event;
 import cs455.overlay.wireformats.Protocol;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -16,8 +17,8 @@ public class TCPConnection extends Thread {
   private LinkedBlockingQueue<Event> queueRecv = new LinkedBlockingQueue<>();
   private LinkedBlockingQueue<Event> queueSend = new LinkedBlockingQueue<>();
 
-  public TCPConnection(String host, int port) throws IOException {
-    this.sock = new Socket(host, port);
+  public TCPConnection(byte[] host, int port) throws IOException {
+    this.sock = new Socket(InetAddress.getByAddress(host), port);
     threadRecv = new TCPReceiverThread(queueRecv, sock);
     threadSend = new TCPSenderThread(queueSend, sock);
   }

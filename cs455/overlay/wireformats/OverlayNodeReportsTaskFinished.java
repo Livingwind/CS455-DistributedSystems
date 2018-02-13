@@ -3,11 +3,11 @@ package cs455.overlay.wireformats;
 import java.io.IOException;
 
 public class OverlayNodeReportsTaskFinished extends Event {
-  private String hostname;
+  private byte[] hostname;
   private int port;
   private int nodeId;
 
-  public OverlayNodeReportsTaskFinished (String hostname, int port, int nodeId) {
+  public OverlayNodeReportsTaskFinished (byte[] hostname, int port, int nodeId) {
     this.type = Protocol.OVERLAY_NODE_REPORTS_TASK_FINISHED;
     this.hostname = hostname;
     this.port = port;
@@ -25,7 +25,7 @@ public class OverlayNodeReportsTaskFinished extends Event {
     byte hostLen = din.readByte();
     byte[] hostBytes = new byte[hostLen];
     din.readFully(hostBytes);
-    hostname = new String(hostBytes);
+    hostname = hostBytes;
 
     port = din.readInt();
     nodeId = din.readInt();
@@ -34,8 +34,8 @@ public class OverlayNodeReportsTaskFinished extends Event {
   @Override
   protected void writeBytes() throws IOException {
     dout.writeByte(type);
-    dout.writeByte(hostname.length());
-    dout.writeBytes(hostname);
+    dout.writeByte(hostname.length);
+    dout.write(hostname);
     dout.writeInt(port);
     dout.writeInt(nodeId);
   }
