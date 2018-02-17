@@ -4,6 +4,7 @@ import cs455.overlay.transport.TCPConnection;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
 public class RegistryEntry implements Comparable<RegistryEntry>{
   public TCPConnection conn;
@@ -31,7 +32,7 @@ public class RegistryEntry implements Comparable<RegistryEntry>{
     }
     else if (obj instanceof RegistryEntry) {
       RegistryEntry other = (RegistryEntry)obj;
-      if (hostname.equals(other.hostname) && receivingPort == other.receivingPort &&
+      if (Arrays.equals(hostname, other.hostname) && receivingPort == other.receivingPort &&
           id == other.id)
         return true;
     }
